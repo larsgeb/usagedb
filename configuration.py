@@ -23,23 +23,6 @@ excluded_users = ['syslog', 'cups-pk-helper']
 # Local database path
 local_database_path = "/var/usagedb/usage_data.db"
 
-# MongoDB connection details
-log_to_external = False
-database_id = "UsageReporter_testDB"
-mongo_uri = "mongodb+srv://<redacted>"
-certificate_path = "<redacted>"
-
-# Durations in minutes
-durations = {
-    "10_minutes": 10,
-    "1_hour": 60,
-    "6_hours": 360,
-    "1_day": 1440,
-    "1_week": 10080,
-    "1_month": 43200,
-    "6_months": 259200,
-}
-
 
 def connect_to_database(database_path):
     conn = sqlite3.connect(database_path)
