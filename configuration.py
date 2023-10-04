@@ -1,14 +1,8 @@
 # config.py
 import sqlite3
-import os
-import argparse
-import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.dates as md
 from datetime import datetime, timedelta
 import sqlite3
-import  sys
 
 # Machine identifier
 machine_id = "swppc"

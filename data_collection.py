@@ -1,11 +1,8 @@
 import psutil
 import datetime
 import subprocess
-import argparse
 import sqlite3
 import pwd, sys, os
-from pymongo import MongoClient
-from pymongo.server_api import ServerApi
 
 # Construct the absolute path to config.py
 config_path = os.path.join('/var/usagedb')
@@ -81,7 +78,7 @@ def collect_data(database_path):
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             pass  # Handle exceptions if a process cannot be accessed
 
-    # Create a list to store all data for insertion into the local SQLite database and MongoDB 
+    # Create a list to store all data for insertion into the local SQLite database
     sqlite_insert_data = []
 
 
