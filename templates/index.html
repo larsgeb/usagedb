@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>SWPPC usage</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/1.0.2/chartjs-plugin-annotation.min.js"></script>
+
+    <script
+        src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+</head>
+
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">{{ hostname }} usage</h1>
+
+        <!-- Display System Information -->
+        <div class="alert alert-info">
+            <strong>CPU Cores:</strong> {{ cpu_cores }} --
+            <strong>Memory:</strong> {{ total_system_memory }} GB
+        </div>
+
+        <!-- Buttons for selecting time intervals -->
+        <div class="btn-group mb-3">
+            <button class="btn btn-secondary" data-minutes="60">60 Minutes</button>
+            <button class="btn btn-secondary" data-minutes="360">6 Hours</button>
+            <button class="btn btn-secondary" data-minutes="4320">3 Days</button>
+            <button class="btn btn-secondary" data-minutes="30240">3 Weeks</button>
+            <button id="reloadButton" class="btn btn-primary">Refresh Data</button>
+
+        </div>
+
+
+        <!-- Button to trigger data reload -->
+
+
+
+        <!-- Description for CPU Usage Chart -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">CPU Usage</h5>
+                        <canvas id="cpuChart" width="400" height="200"></canvas>
+                        </br>
+                        <p class="card-text">
+                            This chart displays CPU usage over time. A value of 100% indicates full utilization of a
+                            single CPU core. When the CPU usage reaches 100% for each core (for this machine, a total of
+                            {{ cpu_cores}}00% with {{ cpu_cores }} cores), it means that all available CPU cores are
+                            actively processing tasks.
+                            Exceeding the maximum CPU cores can lead to performance bottlenecks, delays in task
+                            execution, and system slowdowns. However, modern machines are able to handle high congestion
+                            by hyperthreading. Overusage won't generally impact the results of anyone's code, other than
+                            potentially resulting in slower runtimes.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </br>
+        <!-- Description for Memory Usage Chart -->
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Memory Usage</h5>
+                        <canvas id="memChart" width="400" height="200"></canvas>
+                        </br>
+                        <p class="card-text">
+                            This chart displays memory usage over time. The maximum memory capacity of this system is
+                            128
+                            GB. When memory usage exceeds this limit, it can lead to system instability, crashes, and
+                            performance degradation. It's important to monitor memory usage to prevent resource
+                            exhaustion
+                            and ensure smooth system operation. When your code is using too much memory, you can break
+                            other
+                            people's code, so be aware that you use this sparingly.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+
+            // Function to create and configure a new chart
+            function createChart(ctx, type, data, options) {
+                return new Chart(ctx, {
+                    type: type,
+                    data: data,
+                    options: options
+                });
+            }
+
+            // Function to update chart datasets and labels
+            function updateChart(chart, labels, datasets) {
+                chart.data.labels = labels;
+                chart.data.datasets = datasets;
+                chart.update();
+            }
+
+            // Function to fetch data and update charts
+            function updateCharts(data) {
+                const colors = [
+                    'rgba(31, 119, 180, 1)',
+                    'rgba(255, 127, 14, 1)',
+                    'rgba(44, 160, 44, 1)',
+                    'rgba(214, 39, 40, 1)',
+                    'rgba(148, 103, 189, 1)',
+                    'rgba(140, 86, 75, 1)',
+                    'rgba(227, 119, 194, 1)',
+                    'rgba(127, 127, 127, 1)',
+                    'rgba(188, 189, 34, 1)',
+                    'rgba(23, 190, 207, 1)',
+                    'rgba(174, 199, 232, 1)',
+                    'rgba(255, 187, 120, 1)',
+                    'rgba(152, 223, 138, 1)',
+                    'rgba(255, 152, 150, 1)',
+                    'rgba(197, 176, 213, 1)',
+                    'rgba(196, 156, 148, 1)',
+                    'rgba(247, 182, 210, 1)',
+                    'rgba(199, 199, 199, 1)',
+                    'rgba(219, 219, 141, 1)',
+                    'rgba(158, 218, 229, 1)'
+                ];
+
+                const markers = ['circle', 'triangle', 'rect', 'rectRot', 'cross'];
+                const lineStyles = ['solid', 'dashed', 'dotted'];
+
+                const cpuDatasets = [];
+                const memDatasets = [];
+
+                for (let i = 0; i < data.users_with_home_folders.length; i++) {
+                    const color = colors[i % colors.length];
+                    const marker = markers[i % markers.length];
+                    const lineStyle = lineStyles[i % lineStyles.length];
+
+                    cpuDatasets.push({
+                        label: data.users_with_home_folders[i],
+                        data: data.cpu_data[i],
+                        borderColor: color,
+                        borderWidth: 2,
+                        fill: false,
+                        pointStyle: marker,
+                        borderDash: lineStyle === 'dashed' ? [5, 5] : []
+                    });
+
+                    memDatasets.push({
+                        label: data.users_with_home_folders[i],
+                        data: data.mem_data[i],
+                        borderColor: color,
+                        borderWidth: 2,
+                        fill: false,
+                        pointStyle: marker,
+                        borderDash: lineStyle === 'dashed' ? [5, 5] : []
+                    });
+                }
+
+                const timestamps = data.timestamps.map(timestamp => new Date(timestamp * 1000));
+
+                updateChart(cpuChart, timestamps, cpuDatasets);
+                updateChart(memChart, timestamps, memDatasets);
+
+
+            }
+
+            // Function to highlight the selected time interval button
+            function highlightSelectedButton(button) {
+                const intervalButtons = document.querySelectorAll('.btn-group button');
+                intervalButtons.forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                button.classList.add('active');
+            }
+
+            // Initial page load, fetch and render data
+            const cpuCtx = document.getElementById('cpuChart').getContext('2d');
+            const memCtx = document.getElementById('memChart').getContext('2d');
+
+            const commonOptions = {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    tooltip: {
+                        enabled: true,
+                        intersect: true,
+                    },
+                },
+            };
+
+            const cpuChart = createChart(cpuCtx, 'line', { labels: [], datasets: [] }, {
+                ...commonOptions,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'minute',
+                            tooltipFormat: 'MMM d HH:mm',
+                            parser: 'moment',
+                            displayFormats: {
+                                minute: 'MMM d HH:mm',
+                            },
+                        },
+                    },
+                    y: {
+                        type: 'linear',
+                        ticks: {
+                            suggestedMin: 0, // Minimum value (0%)
+                            suggestedMax: 3600, // Maximum value (100%)
+                            callback: function (value) {
+                                return value.toFixed(0) + '%'; // Format as percentage without thousands separators
+                            },
+                        },
+                    },
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        boxHeight: 0,
+                        labels: {
+
+                            usePointStyle: true,
+                        },
+                        onClick: function (event, legendItem, legend) {
+                            toggleDatasetVisibility(cpuChart, legendItem.text);
+                            toggleDatasetVisibility(memChart, legendItem.text);
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                const label = context.dataset.label || '';
+                                const value = 'Fully using ' + context.parsed.y.toFixed(0) / 100 + ' threads';
+                                return `${label}: ${value}`;
+                            },
+                        },
+                    },
+
+
+                    annotation: {
+                        annotations: [
+                            {
+                                type: 'line',
+                                mode: 'horizontal',
+                                scaleID: 'y',
+                                value: {{ cpu_cores }}00, // The value where you want to add the horizontal line
+                    borderColor: 'red', // Color of the horizontal line
+                    borderWidth: 2, // Width of the line
+                    label: {
+                        enabled: true,
+                        position: 'bottom',
+                        content: 'Max {{ cpu_cores }} cores', // Label text
+                    },
+                },
+                        ],
+                    },
+
+                },
+            });
+
+            var total_system_memory = {{ total_system_memory }};
+
+
+            const memChart = createChart(memCtx, 'line', { labels: [], datasets: [] }, {
+                ...commonOptions,
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'minute',
+                            tooltipFormat: 'MMM d HH:mm',
+                            parser: 'moment',
+                            displayFormats: {
+                                minute: 'MMM d HH:mm',
+                            },
+                        },
+                    },
+                    y: {
+                        type: 'logarithmic',
+                        max: 150, // Maximum value (100%)
+                        min: 0.25,
+
+                        ticks: {
+                            callback: function (value, index, values) {
+                                const memorySizeGB = value;
+                                return memorySizeGB + 'GB';
+                            },
+                            stepSize: 1,
+                            max: total_system_memory,
+                        },
+                    },
+                },
+                plugins: {
+                    legend: {
+                        display: false,
+                        boxHeight: 0
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                const label = context.dataset.label || '';
+                                const value = context.parsed.y.toFixed(1) + 'GB';
+                                return `${label}: ${value}`;
+                            },
+                        },
+                    },
+
+
+                    annotation: {
+                        annotations: [
+                            {
+                                type: 'line',
+                                mode: 'horizontal',
+                                scaleID: 'y',
+                                value: total_system_memory, // The value where you want to add the horizontal line
+                                borderColor: 'red', // Color of the horizontal line
+                                borderWidth: 2, // Width of the line
+                                label: {
+                                    enabled: true,
+                                    position: 'bottom',
+                                    content: 'Max '+total_system_memory+' GB', // Label text
+                                },
+                            },
+                        ],
+                    },
+
+                },
+            });
+
+            // Fetch data on page load
+            fetch('/data')
+                .then(response => response.json())
+                .then(data => {
+                    updateCharts(data);
+                    highlightSelectedButton(document.querySelector('button[data-minutes="60"]'));
+                });
+
+            // Add click event listener to the "Reload Data" button
+            document.getElementById('reloadButton').addEventListener('click', function () {        // Fetch data on data reload
+                fetch('/data')
+                    .then(response => response.json())
+                    .then(data => {
+                        updateCharts(data);
+                        highlightSelectedButton(document.querySelector('button[data-minutes="60"]'));
+                    });
+            });
+
+            // Function to handle button clicks and update data
+            function handleIntervalSelection(event) {
+                const minutes = event.target.getAttribute('data-minutes');
+                if (minutes) {
+                    highlightSelectedButton(event.target);
+
+                    fetch(`/data?minutes=${minutes}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            updateCharts(data);
+                        });
+                }
+            }
+
+            // Function to toggle the visibility of a dataset
+            function toggleDatasetVisibility(chart, datasetLabel) {
+                chart.data.datasets.forEach((dataset) => {
+                    if (dataset.label === datasetLabel) {
+                        dataset.hidden = !dataset.hidden;
+                    }
+                });
+                chart.update();
+            }
+
+
+            // Add click event listeners to the interval selection buttons
+            const intervalButtons = document.querySelectorAll('.btn-group button');
+            intervalButtons.forEach(button => {
+                button.addEventListener('click', handleIntervalSelection);
+            });
+        </script>
+
+        <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+
+</html>
